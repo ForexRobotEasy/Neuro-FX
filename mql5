@@ -1,0 +1,96 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                          Neuro FX EA             |
+//|                                https://forexroboteasy.com        |
+//|                                         Forex Robot Easy Team     |
+//+------------------------------------------------------------------+
+
+// Include necessary libraries and define constants
+#include <Trade\Trade.mqh>
+#include <NeuralNetwork\NeuralNetwork.mqh>
+
+#define SYMBOL 'EURUSD'
+#define LOT_SIZE 0.1
+#define STOP_LOSS 50
+#define TAKE_PROFIT 100
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|                        Expert Advisor Code                        |
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+// Initialize global variables
+double previousPrice;
+double currentPrice;
+double neuralNetworkOutput;
+
+// Initialize objects
+CTrade trade;
+CNeuralNetwork neuralNetwork;
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|                             OnInit()                              |
+//|                                                                  |
+//+------------------------------------------------------------------+
+void OnInit()
+{
+   // Set up neural network parameters
+   neuralNetwork.SetInputSize(2);
+   neuralNetwork.AddHiddenLayer(5);
+   neuralNetwork.SetOutputSize(1);
+   neuralNetwork.Setup();
+
+   // Set up trade parameters
+   trade.SetSymbol(SYMBOL);
+   trade.SetVolume(LOT_SIZE);
+   trade.SetStopLoss(STOP_LOSS);
+   trade.SetTakeProfit(TAKE_PROFIT);
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|                             OnTick()                              |
+//|                                                                  |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   // Get current market price
+   currentPrice = MarketInfo(Symbol(), MODE_BID);
+
+   // If the current price is higher than the previous price, buy
+   if (currentPrice > previousPrice)
+   {
+      // Set neural network input
+      neuralNetwork.SetInput(0, previousPrice);
+      neuralNetwork.SetInput(1, currentPrice);
+
+      // Perform neural network calculation
+      neuralNetwork.Calculate();
+
+      // Get neural network output
+      neuralNetworkOutput = neuralNetwork.GetOutput(0);
+
+      // If neural network output is greater than 0.5, open a buy trade
+      if (neuralNetworkOutput > 0.5)
+      {
+         // Open buy trade
+         trade.Buy();
+      }
+   }
+
+   // Update previous price
+   previousPrice = currentPrice;
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|                             OnDeinit()                            |
+//|                                                                  |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+   // Close all trades
+   trade.CloseAll();
+}
